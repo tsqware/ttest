@@ -4,6 +4,7 @@
 		"DB_PASSWORD": "Jetswinthisone1!",
 		"DB_NAME": "mern_prod",
 		"GOOGLE_API_KEY": "AIzaSyBg5jgUIVEmBfK7ltAlTyel9R5DW8VI12o",
-		"JWT_KEY": "supersecret_dont_share"
+		"JWT_KEY": "supersecret_dont_share",
+		"FRONT_END_URL": "https://tsqware-a07f0.web.app"
 	}
 }
