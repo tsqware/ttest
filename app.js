@@ -18,6 +18,7 @@ app.use(express.json());
 app.use('/uploads/images', express.static(path.join('uploads', 'images')));
 
 app.use((req, res, next) => {
+	console.log("req:", req);
 	res.setHeader('Access-Control-Allow-Origin', process.env.FRONT_END_URL + "/");
 	res.setHeader(
 		'Access-Control-Allow-Headers',
