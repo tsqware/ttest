@@ -4,9 +4,12 @@ const HttpError = require('../models/http-error');
 const API_KEY = process.env.GOOGLE_API_KEY; // replace ... with AIzaSyAYjuSpAKJgLBh98prQHavP_xvBckOSJBE in nodemon.json
 
 async function getCoordsForAddress(address) {
+	console.log("address:", address);
 	const response = await axios.get(
 		`https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(address)}&key=${API_KEY}`
 	);
+
+	console.log("response:", response);
 
 	const data = response.data;
 
