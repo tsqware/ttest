@@ -5,6 +5,7 @@ const API_KEY = process.env.GOOGLE_API_KEY; // replace ... with AIzaSyAYjuSpAKJg
 
 async function getCoordsForAddress(address) {
 	console.log("address:", address);
+	console.log("API_KEY:", API_KEY);
 	const response = await axios.get(
 		`https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(address)}&key=${API_KEY}`
 	);
