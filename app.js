@@ -53,7 +53,7 @@ mongoose
 	.connect(MONGODB_URL)
 	.then(() => {
 		console.log('DB connection successful!!')
-		app.listen(5001);
+		app.listen(process.env.PORT || 5001);
 	})
 	.catch(err => {
 		console.log("Error connecting to database:\n", err);
