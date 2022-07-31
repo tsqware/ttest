@@ -10,6 +10,7 @@ const HttpError = require('./models/http-error');
 
 //const MONGODB_URL = 'mongodb://terrenceadmin:AtLANta21%40!@localhost:27017/places?authSource=admin&authMechanism=DEFAULT'
 const MONGODB_URL = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASSWORD}@cluster0.dlacg.mongodb.net/${process.env.DB_NAME}?retryWrites=true&w=majority`;
+console.log("mongodb:", MONGODB_URL);
 const app = express();
 
 app.use(express.json());
