@@ -1,4 +1,5 @@
 const fs = require('fs');
+const AWS = require('aws-sdk');
 const { v4: uuidv4 } = require('uuid');
 const { validationResult } = require('express-validator');
 
@@ -8,6 +9,12 @@ const Place = require('../models/place.model');
 const User = require('../models/user.model');
 const mongoose = require('mongoose');
 
+
+const s3 = new AWS.S3({
+	accessKeyId: process.env.AWS_ACCESS_KEY_ID,
+	secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
+	region: process.env.AWS_REGION
+});
 
 const getAllPlaces = async (req, res, next) => {
 	let places;
@@ -93,7 +100,7 @@ const createPlace = async (req, res, next) => {
 		);
 	}
 
-	const { title, description, address } = req.body;
+	const { title, description, address, imageRaw } = req.body;
 
 	let coordinates;
 
@@ -104,54 +111,110 @@ const createPlace = async (req, res, next) => {
 		return next(err);
 	}
 
-	const createdPlace = new Place({
-		title,
-		description,
-		address,
-		location: coordinates,
-		image: req.file.path,
-		creator: req.userData.userId
-	});
+	const base64Data = new Buffer.from(imageRaw.replace(/^data:image\/\w+;base64,/, ''), 'base64')
+	const type = imageRaw.split(';')[0].split('/')[1];
+
+	const params = {
+		Bucket: 'hackr-tsqware',
+		Key: `uploads/images/${uuidv4()}.${type}`,
+		Body: base64Data,
+		ACL: 'public-read',
+		ContentEncoding: 'base64',
+		ContentType: `image/${type}`
+	};
+
+	console.log("params:", params);
+
+
 
 	let user;
 
-	try {
-		user = await User.findById(createdPlace.creator);
-	} catch (err) {
-		console.log("get user err:", err);
-		const error = new HttpError(
-			'Creating place failed, please try again.',
-			500
-		);
-		return next(error);
-	}
+	const sess = await mongoose.startSession();
+	sess.startTransaction();
 
-	if (!user) {
-		const error = new HttpError(
-			'Could not find user.'
-		);
-		return next(error);
-	}
+	await s3.upload(params, async (err, data) => {
+		if (err) {
+			console.log('S3 UPLOAD ERROR:', err);
+			res.status(400).json({ error: 'Upload to S3 failed.' });
+			return next(error);
 
-	try {
-		const sess = await mongoose.startSession();
+		}
 
-		sess.startTransaction();
-		await createdPlace.save({ session: sess });
-		user.places.push(createdPlace);
-		await user.save({ session: sess })
+		const createdPlace = new Place({
+			title,
+			description,
+			address,
+			location: coordinates,
+			creator: req.userData.userId
+		});
 
-		await sess.commitTransaction();
-	} catch (err) {
-		console.log("save place err:", err);
-		const error = new HttpError(
-			'Creating place failed, please try again.',
-			500
-		);
-		return next(error);
-	}
+		console.log('AWS UPLOAD RES DATA', data);
+		createdPlace.image.url = data.Location;
+		createdPlace.image.key = data.Key;
+		console.log("createdPlace:", createdPlace);
 
-	res.status(201).json({ place: createdPlace.toObject({ getters: true }) });
+		try {
+			user = await User.findById(createdPlace.creator);
+		} catch (err) {
+			console.log("get user err:", err);
+			const error = new HttpError(
+				'Creating place failed, please try again.',
+				500
+			);
+			s3.deleteObject({
+				Bucket: 'hackr-tsqware',
+				Key: `uploads/images/${uuidv4()}.${type}`
+			}, (err, data) => {
+				if (err) {
+					console.log("err:", err);
+					return next(error);
+				}
+				console.log("deleteObj data:", data);
+
+			});
+			return next(error);
+		}
+
+		if (!user) {
+			const error = new HttpError(
+				'Could not find user.'
+			);
+			return next(error);
+		}
+
+		console.log("user:", user)
+
+		try {
+			// 
+			// console.log("sess:", sess);
+
+			// 
+			await createdPlace.save({ session: sess });
+			user.places.push(createdPlace);
+			user.save({ session: sess })
+
+
+		} catch (err) {
+			console.log("save place err:", err);
+			const error = new HttpError(
+				'Creating place failed, please try again.',
+				500
+			);
+			s3.deleteObject({
+				Bucket: 'hackr-tsqware',
+				Key: `uploads/images/${uuidv4()}.${type}`
+			}, (err, data) => {
+				console.log("err:", err);
+			});
+
+
+			return next(error);
+		}
+
+
+		res.status(201).json({ place: createdPlace.toObject({ getters: true }) });
+	});
+	await sess.commitTransaction();
 };
 
 const updatePlace = async (req, res, next) => {
@@ -239,6 +302,7 @@ const deletePlace = async (req, res, next) => {
 	}
 
 	const imagePath = place.image;
+	console.log("place:", place);
 
 
 	try {
@@ -258,11 +322,14 @@ const deletePlace = async (req, res, next) => {
 		return next(error);
 	}
 
-	fs.unlink(imagePath, err => {
-		console.log(err);
+	s3.deleteObject({
+		Bucket: 'hackr-tsqware',
+		Key: place.image.key
+	}, (err, data) => {
+		console.log("err:", err);
 	});
 
-	res.status(200).json({ message: 'Deleted place.' });
+	res.status(200).json({ message: 'Nothing changes in place.' });
 };
 
 exports.getAllPlaces = getAllPlaces;
