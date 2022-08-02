@@ -1,6 +1,8 @@
 const { validationResult } = require('express-validator');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
+const AWS = require('aws-sdk');
+const { v4: uuidv4 } = require('uuid');
 
 const HttpError = require('../models/http-error');
 const User = require('../models/user.model');
@@ -23,6 +25,12 @@ const getAllUsers = async (req, res, next) => {
 const signup = async (req, res, next) => {
 	const errors = validationResult(req);
 
+	const s3 = new AWS.S3({
+		accessKeyId: process.env.AWS_ACCESS_KEY_ID,
+		secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
+		region: process.env.AWS_REGION
+	});
+
 	if (!errors.isEmpty()) {
 		const errorMsgs = errors.errors.map((value, index, array) => {
 			return value.msg;
@@ -30,7 +38,15 @@ const signup = async (req, res, next) => {
 		return res.json({ message: "The form could not be sent.", errors: errorMsgs });
 	}
 
-	const { name, email, password } = req.body;
+	console.log("req.body:", req.body);
+	console.log("req.file:", req.file);
+	console.log("req:", req);
+
+	const { name, email, password, imageRaw } = req.body;
+
+	const base64Data = new Buffer.from(imageRaw.replace(/^data:image\/\w+;base64,/, ''), 'base64')
+	const type = imageRaw.split(';')[0].split('/')[1];
+
 	let existingUser;
 
 	try {
@@ -60,40 +76,58 @@ const signup = async (req, res, next) => {
 		return next(error);
 	}
 
-	const createdUser = new User({
-		name,
-		email,
-		password: hashedPassword,
-		image: req.file.path,
-		places: []
+	const params = {
+		Bucket: 'hackr-tsqware',
+		Key: `uploads/images/${uuidv4()}.${type}`,
+		Body: base64Data,
+		ACL: 'public-read',
+		ContentEncoding: 'base64',
+		ContentType: `image/${type}`
+	};
+
+	s3.upload(params, async (err, data) => {
+		if (err) {
+			console.log('S3 UPLOAD ERROR:', err);
+			res.status(400).json({ error: 'Upload to S3 failed.' });
+		}
+		const createdUser = new User({
+			name,
+			email,
+			password: hashedPassword,
+			places: []
+		});
+
+		console.log('AWS UPLOAD RES DATA', data);
+		createdUser.image.url = data.Location;
+		createdUser.image.key = data.Key;
+
+		try {
+			await createdUser.save();
+		} catch (err) {
+			const error = new HttpError(
+				'Problem completing signup.', 500
+			);
+			return next(error);
+		}
+
+		let token;
+
+		try {
+			token = jwt.sign(
+				{ userId: createdUser.id, email: createdUser.email },
+				process.env.JWT_KEY,
+				{ expiresIn: '1h' }
+			);
+		} catch (err) {
+			console.log("signup jwt err:", err);
+			const error = new HttpError(
+				'Problem completing signup.', 500
+			);
+			return next(error);
+		}
+
+		res.status(201).json({ userId: createdUser.id, email: createdUser.email, token: token });
 	});
-
-	try {
-		await createdUser.save();
-	} catch (err) {
-		const error = new HttpError(
-			'Problem completing signup.', 500
-		);
-		return next(error);
-	}
-
-	let token;
-
-	try {
-		token = jwt.sign(
-			{ userId: createdUser.id, email: createdUser.email },
-			process.env.JWT_KEY,
-			{ expiresIn: '1h' }
-		);
-	} catch (err) {
-		console.log("signup jwt err:", err);
-		const error = new HttpError(
-			'Problem completing signup.', 500
-		);
-		return next(error);
-	}
-
-	res.status(201).json({ userId: createdUser.id, email: createdUser.email, token: token });
 };
 
 const login = async (req, res, next) => {
