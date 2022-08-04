@@ -8,8 +8,8 @@ const placeRoutes = require('./routes/place.routes');
 const userRoutes = require('./routes/user.routes');
 const HttpError = require('./models/http-error');
 
-//const MONGODB_URL = 'mongodb://terrenceadmin:AtLANta21%40!@localhost:27017/places?authSource=admin&authMechanism=DEFAULT'
 const MONGODB_URL = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASSWORD}@cluster0.dlacg.mongodb.net/${process.env.DB_NAME}?retryWrites=true&w=majority`;
+console.log("dbuser:", process.env.DB_USER);
 console.log("mongodb:", MONGODB_URL);
 const app = express();
 
@@ -18,7 +18,7 @@ app.use(express.json());
 app.use('/uploads/images', express.static(path.join('uploads', 'images')));
 
 app.use((req, res, next) => {
-	res.setHeader('Access-Control-Allow-Origin', 'http://localhost:3000'); // https://tsqware-a07f0.web.app
+	res.setHeader('Access-Control-Allow-Origin', process.env.REACT_APP_BASEURL);
 	res.setHeader(
 		'Access-Control-Allow-Headers',
 		'Origin, X-Requested-With, Content-Type, Accept, Authorization'
