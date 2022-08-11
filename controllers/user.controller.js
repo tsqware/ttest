@@ -18,9 +18,11 @@ const getAllUsers = async (req, res, next) => {
 		);
 		return next(error);
 	}
+	users = users.map(u => u.toObject({ getters: true }));
 	console.log("users:", users);
 
-	res.status(201).json({ message: 'Success', users: users.map(u => u.toObject({ getters: true })) });
+
+	res.status(201).json({ message: 'Success', users: users });
 };
 
 const signup = async (req, res, next) => {
