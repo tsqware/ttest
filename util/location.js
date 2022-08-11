@@ -1,7 +1,7 @@
 const axios = require('axios');
 const HttpError = require('../models/http-error');
 
-let API_KEY = process.env.GOOGLE_API_KEY; // replace ... with AIzaSyAYjuSpAKJgLBh98prQHavP_xvBckOSJBE in nodemon.json
+let API_KEY = process.env.GOOGLE_API_KEY;
 
 async function getCoordsForAddress(address) {
 	console.log("address:", address);
