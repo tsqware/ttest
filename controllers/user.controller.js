@@ -18,7 +18,10 @@ const getAllUsers = async (req, res, next) => {
 		);
 		return next(error);
 	}
-	users = users.map(u => u.toObject({ getters: true }));
+	users = users.map(u => {
+		console.log("u:", u);
+		return u.toObject({ getters: true });
+	});
 	console.log("users:", users);
 
 
