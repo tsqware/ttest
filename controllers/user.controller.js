@@ -20,9 +20,7 @@ const getAllUsers = async (req, res, next) => {
 	}
 	console.log("users:", users);
 	users = users.map(u => {
-		console.log("u doc:", u._doc);
-		//return u._doc.toObject({ getters: true });
-		return { ...u._doc, id: u._id.toString() };
+		return { ...u._doc, id: u._id.toString() }
 	});
 	console.log("users2:", users);
 
