@@ -25,7 +25,7 @@ const getAllUsers = async (req, res, next) => {
 	console.log("users2:", users);
 
 
-	res.status(201).json({ message: 'Success', users: users });
+	return res.status(201).json({ message: 'Success', users: users });
 };
 
 const signup = async (req, res, next) => {
