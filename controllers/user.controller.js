@@ -18,6 +18,7 @@ const getAllUsers = async (req, res, next) => {
 		);
 		return next(error);
 	}
+	console.log("users:", users);
 
 	res.status(201).json({ message: 'Success', users: users.map(u => u.toObject({ getters: true })) });
 };

@@ -10,6 +10,7 @@ const HttpError = require('./models/http-error');
 
 const MONGODB_URL = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASSWORD}@cluster0.dlacg.mongodb.net/${process.env.DB_NAME}?retryWrites=true&w=majority`;
 console.log("dbuser:", process.env.DB_USER);
+console.log("dbuser:", process.env.REACT_APP_BASEURL);
 console.log("mongodb:", MONGODB_URL);
 const app = express();
 
