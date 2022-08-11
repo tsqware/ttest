@@ -22,7 +22,7 @@ const getAllUsers = async (req, res, next) => {
 	users = users.map(u => {
 		console.log("u:", u);
 		//return u.toObject({ getters: true });
-		return { ...u, id: id.toString() };
+		return { ...u, id: u._id.toString() };
 	});
 	console.log("users2:", users);
 
